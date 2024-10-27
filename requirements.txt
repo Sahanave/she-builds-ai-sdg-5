@@ -1,0 +1,6 @@
+numpy
+asynckivy
+kivy
+kivymd
+kivy_garden.graph --extra-index-url https://kivy-garden.github.io/simple/
+kivy_garden.draggable>=0.2,<0.3
