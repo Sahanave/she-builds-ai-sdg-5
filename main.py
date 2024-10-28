@@ -1,5 +1,7 @@
 '''
-https://www.youtube.com/watch?v=PNj8uEdd5c0
+Reference video : https://www.youtube.com/watch?v=PNj8uEdd5c0
+Reference code : https://github.com/kivy-garden/draggable/blob/main/examples/shopping.py
+Reference about unpaid work : https://www.unwomen.org/sites/default/files/2022-06/A-toolkit-on-paid-and-unpaid-care-work-en.pdf
 '''
 
 import itertools
@@ -17,109 +19,17 @@ import asynckivy as ak
 from kivy_garden.draggable import KXDraggableBehavior
 
 
-KV_CODE = r'''
-<SHLabel@Label,SHButton@Button>:
-    size_hint_min: [v + dp(8) for v in self.texture_size]
-    halign: 'center'
-
-<SHFood>:
-    orientation: 'vertical'
-    spacing: '4dp'
-    drag_timeout: 0
-    drag_cls: 'food'
-    size: '200dp', '200dp'
-    size_hint: None, None
-    opacity: .5 if self.is_being_dragged else 1.
-    canvas.before:
-        Color:
-            rgba: .4, .4, .4, 1
-        Line:
-            rectangle: (*self.pos, *self.size, )
-    Image:
-        allow_stretch: True
-        texture: root.datum.texture
-        size_hint_y: 3.
-    SHLabel:
-        text: '{} ({} yen)'.format(root.datum.name, root.datum.price)
-
-<SHShelf@KXReorderableBehavior+RVLikeBehavior+StackLayout>:
-    padding: '10dp'
-    spacing: '10dp'
-    size_hint_min_y: self.minimum_height
-    drag_classes: ['food', ]
-    viewclass: 'SHFood'
-
-<SHMain>:
-    orientation: 'vertical'
-    padding: '10dp'
-    spacing: '10dp'
-    EquitableBoxLayout:
-        BoxLayout:
-            orientation: 'vertical'
-            SHLabel:
-                text: 'Shelf'
-                font_size: max(20, sp(16))
-                bold: True
-                color: rgba("#44AA44")
-            ScrollView:
-                size_hint_y: 1000.
-                always_overscroll: False
-                SHShelf:
-                    id: shelf
-        Splitter:
-            sizable_from: 'left'
-            min_size: 100
-            max_size: root.width
-            BoxLayout:
-                orientation: 'vertical'
-                SHLabel:
-                    text: 'Your Shopping Cart'
-                    font_size: max(20, sp(16))
-                    bold: True
-                    color: rgba("#4466FF")
-                ScrollView:
-                    size_hint_y: 1000.
-                    always_overscroll: False
-                    SHShelf:
-                        id: cart
-    BoxLayout:
-        size_hint_y: None
-        height: self.minimum_height
-        SHButton:
-            text: 'sort by price\n(ascend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.price)
-        SHButton:
-            text: 'sort by price\n(descend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.price, reverse=True)
-        SHButton:
-            text: 'sort by name\n(ascend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.name)
-        SHButton:
-            text: 'sort by name\n(descend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.name, reverse=True)
-        Widget:
-        SHButton:
-            text: 'total price'
-            on_press: root.show_total_price()
-        SHButton:
-            text: 'sort by price\n(ascend)'
-            on_press: cart.data = sorted(cart.data, key=lambda d: d.price)
-        SHButton:
-            text: 'sort by price\n(descend)'
-            on_press: cart.data = sorted(cart.data, key=lambda d: d.price, reverse=True)
-'''
-
-
 @dataclass
-class Food:
+class task_to_be_done:
     name: str = ''
-    price: int = 0
+    time: int = 0
+    energy: int = 0
     texture: F.Texture = None
 
 
-class ShoppingApp(App):
+class SharingApp(App):
     def build(self):
-        Builder.load_string(KV_CODE)
+        Builder.load_file('task_manager.kv')
         return SHMain()
 
     def on_start(self):
@@ -127,7 +37,7 @@ class ShoppingApp(App):
 
 
 class SHMain(F.BoxLayout):
-    def show_total_price(self, *, _cache=[]):
+    def show_total(self, *, _cache=[]):
         try:
             popup = _cache.pop()
         except IndexError:
@@ -137,8 +47,9 @@ class SHMain(F.BoxLayout):
                 content=F.Label(),
             )
             popup.bind(on_dismiss=lambda popup, _cache=_cache: _cache.append(popup))
-        total_price = sum(d.price for d in self.ids.cart.data)
-        popup.content.text = f"{total_price} yen"
+        total_time = sum(d.time for d in self.ids.cart.data)
+        total_energy= sum(d.energy for d in self.ids.cart.data)
+        popup.content.text = f"{total_time} hours / {total_energy} energy bar " 
         popup.open()
 
     async def main(self, db_path: PathLike):
@@ -148,14 +59,13 @@ class SHMain(F.BoxLayout):
         conn = await self._load_database(db_path)
         with closing(conn.cursor()) as cur:
             # FIXME: It's probably better to ``Texture.add_reload_observer()``.
-            self.food_textures = textures = {
+            self.task_textures = textures = {
                 name: CoreImage(BytesIO(image_data), ext='png').texture
-                for name, image_data in cur.execute("SELECT name, image FROM Foods")
+                for name, image_data in cur.execute("SELECT name, image FROM Tasks")
             }
             self.ids.shelf.data = [
-                Food(name=name, price=price, texture=textures[name])
-                for name, price in cur.execute("SELECT name, price FROM Foods")
-                for __ in range(randint(2, 4))
+                task_to_be_done(name=name, time=time, energy=energy,  texture=textures[name])
+                for name, time, energy in cur.execute("SELECT name, time, energy FROM Tasks")
             ]
 
     @staticmethod
@@ -182,25 +92,21 @@ class SHMain(F.BoxLayout):
         import asynckivy as ak
         with closing(conn.cursor()) as cur:
             cur.executescript("""
-                CREATE TABLE Foods (
+                CREATE TABLE Tasks (
                     name TEXT NOT NULL UNIQUE,
-                    price INT NOT NULL,
+                    time INT NOT NULL,
+                    energy INT NOT NULL,
                     image_url TEXT NOT NULL,
                     image BLOB DEFAULT NULL,
                     PRIMARY KEY (name)
                 );
-                INSERT INTO Foods(name, price, image_url) VALUES
-                    ('blueberry', 500, 'https://3.bp.blogspot.com/-RVk4JCU_K2M/UvTd-IhzTvI/AAAAAAAAdhY/VMzFjXNoRi8/s180-c/fruit_blueberry.png'),
-                    ('cacao', 800, 'https://3.bp.blogspot.com/-WT_RsvpvAhc/VPQT6ngLlmI/AAAAAAAAsEA/aDIU_F9TYc8/s180-c/fruit_cacao_kakao.png'),
-                    ('dragon fruit', 1200, 'https://1.bp.blogspot.com/-hATAhM4UmCY/VGLLK4mVWYI/AAAAAAAAou4/-sW2fvsEnN0/s180-c/fruit_dragonfruit.png'),
-                    ('kiwi', 130, 'https://2.bp.blogspot.com/-Y8xgv2nvwEs/WCdtGij7aTI/AAAAAAAA_fo/PBXfb8zCiQAZ8rRMx-DNclQvOHBbQkQEwCLcB/s180-c/fruit_kiwi_green.png'),
-                    ('lemon', 200, 'https://2.bp.blogspot.com/-UqVL2dBOyMc/WxvKDt8MQbI/AAAAAAABMmk/qHrz-vwCKo8okZsZpZVDsHLsKFXdI1BjgCLcBGAs/s180-c/fruit_lemon_tategiri.png'),
-                    ('mangosteen', 300, 'https://4.bp.blogspot.com/-tc72dGzUpww/WGYjEAwIauI/AAAAAAABAv8/xKvtWmqeKFcro6otVdLi5FFF7EoVxXiEwCLcB/s180-c/fruit_mangosteen.png'),
-                    ('apple', 150, 'https://4.bp.blogspot.com/-uY6ko43-ABE/VD3RiIglszI/AAAAAAAAoEA/kI39usefO44/s180-c/fruit_ringo.png'),
-                    ('orange', 100, 'https://1.bp.blogspot.com/-fCrHtwXvM6w/Vq89A_TvuzI/AAAAAAAA3kE/fLOFjPDSRn8/s180-c/fruit_slice10_orange.png'),
-                    ('soldum', 400, 'https://2.bp.blogspot.com/-FtWOiJkueNA/WK7e09oIUyI/AAAAAAABB_A/ry22yAU3W9sbofMUmA5-nn3D45ix_Y5RwCLcB/s180-c/fruit_soldum.png'),
-                    ('corn', 50, 'https://1.bp.blogspot.com/-RAJBy7nx2Ro/XkZdTINEtOI/AAAAAAABXWE/x8Sbcghba9UzR8Ppafozi4_cdmD1pawowCNcBGAsYHQ/s180-c/vegetable_toumorokoshi_corn_wagiri.png'),
-                    ('aloe', 400, 'https://4.bp.blogspot.com/-v7OAB-ULlrs/VVGVQ1FCjxI/AAAAAAAAtjg/H09xS1Nf9_A/s180-c/plant_aloe_kaniku.png');
+                INSERT INTO Tasks(name, time, energy, image_url) VALUES                
+                    ('cooking', 3, 3, 'https://3.bp.blogspot.com/-RVk4JCU_K2M/UvTd-IhzTvI/AAAAAAAAdhY/VMzFjXNoRi8/s180-c/fruit_blueberry.png'),
+                    ('cleaning', 3, 5 , 'https://3.bp.blogspot.com/-WT_RsvpvAhc/VPQT6ngLlmI/AAAAAAAAsEA/aDIU_F9TYc8/s180-c/fruit_cacao_kakao.png'),
+                    ('collecting essentials', 2, 2 , 'https://1.bp.blogspot.com/-hATAhM4UmCY/VGLLK4mVWYI/AAAAAAAAou4/-sW2fvsEnN0/s180-c/fruit_dragonfruit.png'),
+                    ('child-care', 7,7 , 'https://2.bp.blogspot.com/-Y8xgv2nvwEs/WCdtGij7aTI/AAAAAAAA_fo/PBXfb8zCiQAZ8rRMx-DNclQvOHBbQkQEwCLcB/s180-c/fruit_kiwi_green.png'),
+                    ('elderly-care', 7,7 , 'https://4.bp.blogspot.com/-uY6ko43-ABE/VD3RiIglszI/AAAAAAAAoEA/kI39usefO44/s180-c/fruit_ringo.png'),
+                    ('Taking care of challenged/ill person', 7,7, 'https://4.bp.blogspot.com/-v7OAB-ULlrs/VVGVQ1FCjxI/AAAAAAAAtjg/H09xS1Nf9_A/s180-c/plant_aloe_kaniku.png');
             """)
 
             # download images
@@ -211,18 +117,18 @@ class SHMain(F.BoxLayout):
                     return (image, name)
                 tasks = await ak.wait_all(*(
                     download_one_image(name, image_url)
-                    for name, image_url in cur.execute("SELECT name, image_url FROM Foods")
+                    for name, image_url in cur.execute("SELECT name, image_url FROM Tasks")
                 ))
 
             # save images
             cur.executemany(
-                "UPDATE Foods SET image = ? WHERE name = ?",
+                "UPDATE Tasks SET image = ? WHERE name = ?",
                 (task.result for task in tasks),
             )
 
 
-class SHFood(KXDraggableBehavior, F.BoxLayout):
-    datum = ObjectProperty(Food(), rebind=True)
+class SHTask(KXDraggableBehavior, F.BoxLayout):
+    datum = ObjectProperty(task_to_be_done(), rebind=True)
 
 
 class EquitableBoxLayout(F.BoxLayout):
@@ -282,4 +188,4 @@ F.register('RVLikeBehavior', cls=RVLikeBehavior)
 
 
 if __name__ == '__main__':
-    ShoppingApp().run()
+    SharingApp().run()

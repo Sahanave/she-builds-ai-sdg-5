@@ -1,0 +1,89 @@
+<SHLabel@Label,SHButton@Button>:
+    size_hint_min: [v + dp(8) for v in self.texture_size]
+    halign: 'center'
+
+<SHTask>:
+    orientation: 'vertical'
+    spacing: '4dp'
+    drag_timeout: 0
+    drag_cls: 'task_to_be_done'
+    size: '200dp', '200dp'
+    size_hint: None, None
+    opacity: .5 if self.is_being_dragged else 1.
+    canvas.before:
+        Color:
+            rgba: .4, .4, .4, 1
+        Line:
+            rectangle: (*self.pos, *self.size, )
+    Image:
+        allow_stretch: True
+        texture: root.datum.texture
+        size_hint_y: 3.
+    SHLabel:
+        text: '{} ({} time {} energy)'.format(root.datum.name, root.datum.time, root.datum.energy)
+
+<SHShelf@KXReorderableBehavior+RVLikeBehavior+StackLayout>:
+    padding: '10dp'
+    spacing: '10dp'
+    size_hint_min_y: self.minimum_height
+    drag_classes: ['task_to_be_done', ]
+    viewclass: 'SHTask'
+
+<SHMain>:
+    orientation: 'vertical'
+    padding: '10dp'
+    spacing: '10dp'
+    EquitableBoxLayout:
+        BoxLayout:
+            orientation: 'vertical'
+            SHLabel:
+                text: 'Shelf'
+                font_size: max(20, sp(16))
+                bold: True
+                color: rgba("#44AA44")
+            ScrollView:
+                size_hint_y: 1000.
+                always_overscroll: False
+                SHShelf:
+                    id: shelf
+        Splitter:
+            sizable_from: 'left'
+            min_size: 100
+            max_size: root.width
+            BoxLayout:
+                orientation: 'vertical'
+                SHLabel:
+                    text: 'Your Shopping Cart'
+                    font_size: max(20, sp(16))
+                    bold: True
+                    color: rgba("#4466FF")
+                ScrollView:
+                    size_hint_y: 1000.
+                    always_overscroll: False
+                    SHShelf:
+                        id: cart
+    BoxLayout:
+        size_hint_y: None
+        height: self.minimum_height
+        SHButton:
+            text: 'sort by time\n(ascend)'
+            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.time)
+        SHButton:
+            text: 'sort by time\n(descend)'
+            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.time, reverse=True)
+        SHButton:
+            text: 'sort by energy\n(ascend)'
+            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.energy)
+        SHButton:
+            text: 'sort by energy\n(descend)'
+            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.energy, reverse=True)
+        Widget:
+        SHButton:
+            text: 'total spent'
+            on_press: root.show_total()
+        SHButton:
+            text: 'sort by time\n(ascend)'
+            on_press: cart.data = sorted(cart.data, key=lambda d: d.time)
+        SHButton:
+            text: 'sort by energy\n(ascend)'
+            on_press: cart.data = sorted(cart.data, key=lambda d: d.energy)
