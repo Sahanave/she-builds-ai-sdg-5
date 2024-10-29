@@ -60,8 +60,8 @@ class SHMain(F.BoxLayout):
         with closing(conn.cursor()) as cur:
             # FIXME: It's probably better to ``Texture.add_reload_observer()``.
             self.task_textures = textures = {
-                name: CoreImage(BytesIO(image_data), ext='png').texture
-                for name, image_data in cur.execute("SELECT name, image FROM Tasks")
+                name: CoreImage(BytesIO(open(image_path,"rb").read()), ext='png').texture
+                for name, image_path in cur.execute("SELECT name, image_path FROM Tasks")
             }
             self.ids.shelf.data = [
                 task_to_be_done(name=name, time=time, energy=energy,  texture=textures[name])
@@ -96,35 +96,17 @@ class SHMain(F.BoxLayout):
                     name TEXT NOT NULL UNIQUE,
                     time INT NOT NULL,
                     energy INT NOT NULL,
-                    image_url TEXT NOT NULL,
-                    image BLOB DEFAULT NULL,
+                    image_path TEXT NOT NULL,
                     PRIMARY KEY (name)
                 );
-                INSERT INTO Tasks(name, time, energy, image_url) VALUES                
-                    ('cooking', 3, 3, 'https://3.bp.blogspot.com/-RVk4JCU_K2M/UvTd-IhzTvI/AAAAAAAAdhY/VMzFjXNoRi8/s180-c/fruit_blueberry.png'),
-                    ('cleaning', 3, 5 , 'https://3.bp.blogspot.com/-WT_RsvpvAhc/VPQT6ngLlmI/AAAAAAAAsEA/aDIU_F9TYc8/s180-c/fruit_cacao_kakao.png'),
-                    ('collecting essentials', 2, 2 , 'https://1.bp.blogspot.com/-hATAhM4UmCY/VGLLK4mVWYI/AAAAAAAAou4/-sW2fvsEnN0/s180-c/fruit_dragonfruit.png'),
-                    ('child-care', 7,7 , 'https://2.bp.blogspot.com/-Y8xgv2nvwEs/WCdtGij7aTI/AAAAAAAA_fo/PBXfb8zCiQAZ8rRMx-DNclQvOHBbQkQEwCLcB/s180-c/fruit_kiwi_green.png'),
-                    ('elderly-care', 7,7 , 'https://4.bp.blogspot.com/-uY6ko43-ABE/VD3RiIglszI/AAAAAAAAoEA/kI39usefO44/s180-c/fruit_ringo.png'),
-                    ('Taking care of challenged/ill person', 7,7, 'https://4.bp.blogspot.com/-v7OAB-ULlrs/VVGVQ1FCjxI/AAAAAAAAtjg/H09xS1Nf9_A/s180-c/plant_aloe_kaniku.png');
+                INSERT INTO Tasks(name, time, energy, image_path) VALUES                
+                    ('Cooking', 3, 3, 'assets/cooking.png'),
+                    ('Cleaning', 3, 5 , 'assets/mop.png'),
+                    ('Essentials', 2, 2 , 'assets/vegetable.png'),
+                    ('Child-care', 7,7 , 'assets/crawl.png'),
+                    ('Elderly-care', 7,7 , 'assets/elderly.png'),
+                    ('Other Care', 7,7, 'assets/care.png');
             """)
-
-            # download images
-            # FIXME: The Session object may not be thread-safe so it's probably better not to share it between threads...
-            with ThreadPoolExecutor() as executer, requests.Session() as session:
-                async def download_one_image(name, image_url) -> Tuple[bytes, str]:
-                    image = await ak.run_in_executor(executer, lambda: session.get(image_url).content)
-                    return (image, name)
-                tasks = await ak.wait_all(*(
-                    download_one_image(name, image_url)
-                    for name, image_url in cur.execute("SELECT name, image_url FROM Tasks")
-                ))
-
-            # save images
-            cur.executemany(
-                "UPDATE Tasks SET image = ? WHERE name = ?",
-                (task.result for task in tasks),
-            )
 
 
 class SHTask(KXDraggableBehavior, F.BoxLayout):
