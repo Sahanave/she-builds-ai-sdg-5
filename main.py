@@ -16,8 +16,12 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.factory import Factory as F
 import asynckivy as ak
-from kivy_garden.draggable import KXDraggableBehavior
-
+from kivy_garden.draggable import KXDraggableBehavior, KXReorderableBehavior
+from kivy.uix.stacklayout import StackLayout
+from kivy.uix.scrollview import ScrollView
+from gemini_calls import generate_game_scenario
+from sql_queries import CHOOSE_COUPLE_SQL, CREATE_TABLES, get_texture
+from types import SimpleNamespace
 
 @dataclass
 class task_to_be_done:
@@ -37,7 +41,35 @@ class SharingApp(App):
 
 
 class SHMain(F.BoxLayout):
-    def show_total(self, *, _cache=[]):
+    prompt = ObjectProperty(None)
+    player1 = ObjectProperty(None)
+    player2 = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._equality_text = None
+
+    def _unpack_couple_names(self,couple_names):
+        player1.actor_name = couple_names['man']['name']
+        player1.energy = couple_names['man']['energy']
+        player1.time = couple_names['man']['time']
+        player2.actor_name = couple_names['woman']['name']
+        player2.energy = couple_names['man']['energy']
+        player2.time = couple_names['man']['time']
+
+    def generate_prompt(self, conn):
+        with closing(conn.cursor()) as cur:
+            actors = [((male_name,male_image_path ),(female_name,female_image_path )) for (male_name, male_image_path, female_name, female_image_path) in  cur.execute(CHOOSE_COUPLE_SQL)]
+            tasks_to_complete = [
+                task_to_be_done(name=name, time=time, energy=energy,  texture=None)
+                for name, time, energy in cur.execute("SELECT name, time, energy FROM Tasks")
+            ]
+            game_scenario = generate_game_scenario(tasks_to_complete)
+            self.ids.prompt_text.text += game_scenario["background_story"]
+            #self._unpack_couple_names(game_scenario['couple_names'])
+            return game_scenario
+
+    def show_total(self,total_time,total_energy, *, _cache=[]):
         try:
             popup = _cache.pop()
         except IndexError:
@@ -47,9 +79,20 @@ class SHMain(F.BoxLayout):
                 content=F.Label(),
             )
             popup.bind(on_dismiss=lambda popup, _cache=_cache: _cache.append(popup))
-        total_time = sum(d.time for d in self.ids.cart.data)
-        total_energy= sum(d.energy for d in self.ids.cart.data)
         popup.content.text = f"{total_time} hours / {total_energy} energy bar " 
+        popup.open()
+
+    def show_message(self, *, _cache=[]):
+        try:
+            popup = _cache.pop()
+        except IndexError:
+            popup = F.Popup(
+                title='Gender Equality',
+                content=F.Label(),
+                size_hint=(1, .2),
+            )
+            popup.bind(on_dismiss=lambda popup, _cache=_cache: _cache.append(popup))
+        popup.content.text = self._equality_text
         popup.open()
 
     async def main(self, db_path: PathLike):
@@ -57,16 +100,34 @@ class SHMain(F.BoxLayout):
         from io import BytesIO
         from kivy.core.image import Image as CoreImage
         conn = await self._load_database(db_path)
+        game_scenario = self.generate_prompt(conn)
+        self._equality_text = game_scenario['equality_fact']
+        sampled_chores, renamed = game_scenario['list_of_chores'], game_scenario['renamed'][0]
+
         with closing(conn.cursor()) as cur:
             # FIXME: It's probably better to ``Texture.add_reload_observer()``.
+            set_of_names = set(SimpleNamespace(**task).name for task in sampled_chores)
+          
+            for new_value, og_value in renamed.items():
+                set_of_names.discard(new_value)
+                set_of_names.add(og_value)
+
+            names_tuple = tuple(set_of_names)
+
             self.task_textures = textures = {
                 name: CoreImage(BytesIO(open(image_path,"rb").read()), ext='png').texture
-                for name, image_path in cur.execute("SELECT name, image_path FROM Tasks")
+                for name, image_path in cur.execute(get_texture(names_tuple))
             }
-            self.ids.shelf.data = [
-                task_to_be_done(name=name, time=time, energy=energy,  texture=textures[name])
-                for name, time, energy in cur.execute("SELECT name, time, energy FROM Tasks")
-            ]
+
+            final_list = []
+            for task_dict in sampled_chores:
+                task =  SimpleNamespace(**task_dict) 
+                if task.name in set_of_names:
+                    final_list.append(task_to_be_done(name=task.name, time=task.time_to_be_spent, energy=task.energy_to_be_spent, texture=self.task_textures[task.name]))
+                else:
+                    final_list.append(task_to_be_done(name=task.name, time=task.time_to_be_spent, energy=task.energy_to_be_spent, texture=self.task_textures[renamed[task.name]]))
+
+            self.ids.shelf.data = final_list
 
     @staticmethod
     async def _load_database(db_path: PathLike) -> sqlite3.Connection:
@@ -91,22 +152,7 @@ class SHMain(F.BoxLayout):
         import requests
         import asynckivy as ak
         with closing(conn.cursor()) as cur:
-            cur.executescript("""
-                CREATE TABLE Tasks (
-                    name TEXT NOT NULL UNIQUE,
-                    time INT NOT NULL,
-                    energy INT NOT NULL,
-                    image_path TEXT NOT NULL,
-                    PRIMARY KEY (name)
-                );
-                INSERT INTO Tasks(name, time, energy, image_path) VALUES                
-                    ('Cooking', 3, 3, 'assets/cooking.png'),
-                    ('Cleaning', 3, 5 , 'assets/mop.png'),
-                    ('Essentials', 2, 2 , 'assets/vegetable.png'),
-                    ('Child-care', 7,7 , 'assets/crawl.png'),
-                    ('Elderly-care', 7,7 , 'assets/elderly.png'),
-                    ('Other Care', 7,7, 'assets/care.png');
-            """)
+            cur.executescript(CREATE_TABLES)
 
 
 class SHTask(KXDraggableBehavior, F.BoxLayout):
@@ -167,7 +213,6 @@ class RVLikeBehavior:
             self.add_widget(w)
         params.clear()
 F.register('RVLikeBehavior', cls=RVLikeBehavior)
-
 
 if __name__ == '__main__':
     SharingApp().run()

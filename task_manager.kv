@@ -43,7 +43,8 @@
     prompt : prompt_text
     player1 : man
     player2 : woman
-    list_of_chores : []
+    fact_button : fact
+
     BoxLayout:
         BoxLayout:
             orientation: 'vertical'
@@ -54,7 +55,7 @@
                     source: 'assets/city_bg.jpg'
             SHLabel:
                 id : prompt_text
-                text: "<---Balance--> \n\n"
+                text: "Balance \n\n"
                 font_size: max(30, sp(20))
                 text_size: self.width, None
                 center_x: root.width / 4
@@ -117,24 +118,19 @@
         size_hint_y: None
         height: self.minimum_height
         SHButton:
-            text: 'sort by time\n(ascend)'
+            text: 'New Game'
             on_press: shelf.data = sorted(shelf.data, key=lambda d: d.time)
-        SHButton:
-            text: 'sort by time\n(descend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.time, reverse=True)
-        SHButton:
-            text: 'sort by energy\n(ascend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.energy)
-        SHButton:
-            text: 'sort by energy\n(descend)'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.energy, reverse=True)
         Widget:  # This can act as a spacer if needed
             size_hint_y: None
             height: dp(10)  # Adjust the height to create space
 
         SHButton:
-            text: 'total spent Player 1'
-            on_press: root.show_total(sum([data.time for data in cart1.data]), sum([data.energy for data in cart1.data]))
+            text: 'Total'
+            on_press: root.show_total(sum([data.time for data in man.data]), sum([data.energy for data in man.data]))
         SHButton:
-            text: 'total spent Player 2'
-            on_press: root.show_total(sum([data.time for data in cart2.data]), sum([data.energy for data in cart2.data]))
+            text: 'Submit'
+            on_press: root.show_total(sum([data.time for data in woman.data]), sum([data.energy for data in woman.data]))
+        SHButton:
+            id : fact
+            text: 'Do you know'
+            on_press: root.show_message()
