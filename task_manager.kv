@@ -20,7 +20,9 @@
         texture: root.datum.texture
         size_hint_y: 3.
     SHLabel:
-        text: '{} ({} time {} energy)'.format(root.datum.name, root.datum.time, root.datum.energy)
+        text: '{} \n({} time {} energy)'.format(root.datum.name, root.datum.time, root.datum.energy)
+        color: rgba("#E75480")
+        bold: True
 
 <SHShelf@KXReorderableBehavior+RVLikeBehavior+StackLayout>:
     padding: '10dp'
@@ -29,18 +31,42 @@
     drag_classes: ['task_to_be_done', ]
     viewclass: 'SHTask'
 
+<SHActor@SHShelf>:
+    actor_name : 'default'
+    energy : 0
+    time : 0
+
 <SHMain>:
     orientation: 'vertical'
     padding: '10dp'
     spacing: '10dp'
-    EquitableBoxLayout:
+    prompt : prompt_text
+    player1 : man
+    player2 : woman
+    list_of_chores : []
+    BoxLayout:
         BoxLayout:
             orientation: 'vertical'
+            canvas.before:
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+                    source: 'assets/city_bg.jpg'
             SHLabel:
-                text: 'Shelf'
-                font_size: max(20, sp(16))
+                id : prompt_text
+                text: "<---Balance--> \n\n"
+                font_size: max(30, sp(20))
+                text_size: self.width, None
+                center_x: root.width / 4
+                top: root.top - 50
+                size: self.texture_size
                 bold: True
-                color: rgba("#44AA44")
+                color: rgba("#A52A2A")
+            SHLabel:
+                text: '\n\n\nDistribute tasks for our lovely couple'
+                font_size: max(30, sp(20))
+                bold: True
+                color: rgba("#734F96")
             ScrollView:
                 size_hint_y: 1000.
                 always_overscroll: False
@@ -52,16 +78,41 @@
             max_size: root.width
             BoxLayout:
                 orientation: 'vertical'
-                SHLabel:
-                    text: 'Your Shopping Cart'
-                    font_size: max(20, sp(16))
-                    bold: True
-                    color: rgba("#4466FF")
-                ScrollView:
-                    size_hint_y: 1000.
-                    always_overscroll: False
-                    SHShelf:
-                        id: cart
+                BoxLayout: 
+                    Label:
+                        text: 'Player 1'
+                        bold: True
+                        color: rgba("#4466FF")
+                    ScrollView:
+                        canvas.before:
+                            Color:
+                                rgba: .4, .4, .4, 1
+                            Line:
+                                rectangle: (*self.pos, *self.size, )
+                        size_hint_y: 1000.
+                        always_overscroll: False
+                        SHActor:
+                            id: man
+                Splitter:
+                    sizable_from: 'left'  # Resize cart1 from the left
+                    min_size: 100  # Minimum width for cart1
+                    max_size: root.width  # Maximum width for cart1
+                BoxLayout: 
+                    Label:
+                        text: 'Player 2'
+                        bold: True
+                        color: rgba("#4466FF")
+                    ScrollView:
+                        canvas.before:
+                            Color:
+                                rgba: .4, .4, .4, 1
+                            Line:
+                                rectangle: (*self.pos, *self.size, )
+                        size_hint_y: 1000.
+                        always_overscroll: False
+                        SHActor:
+                            id: woman
+
     BoxLayout:
         size_hint_y: None
         height: self.minimum_height
@@ -77,13 +128,13 @@
         SHButton:
             text: 'sort by energy\n(descend)'
             on_press: shelf.data = sorted(shelf.data, key=lambda d: d.energy, reverse=True)
-        Widget:
+        Widget:  # This can act as a spacer if needed
+            size_hint_y: None
+            height: dp(10)  # Adjust the height to create space
+
         SHButton:
-            text: 'total spent'
-            on_press: root.show_total()
+            text: 'total spent Player 1'
+            on_press: root.show_total(sum([data.time for data in cart1.data]), sum([data.energy for data in cart1.data]))
         SHButton:
-            text: 'sort by time\n(ascend)'
-            on_press: cart.data = sorted(cart.data, key=lambda d: d.time)
-        SHButton:
-            text: 'sort by energy\n(ascend)'
-            on_press: cart.data = sorted(cart.data, key=lambda d: d.energy)
+            text: 'total spent Player 2'
+            on_press: root.show_total(sum([data.time for data in cart2.data]), sum([data.energy for data in cart2.data]))
