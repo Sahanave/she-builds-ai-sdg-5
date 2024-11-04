@@ -49,24 +49,26 @@ class SHMain(F.BoxLayout):
         super().__init__(**kwargs)
         self._equality_text = None
 
-    def _unpack_couple_names(self,couple_names):
-        player1.actor_name = couple_names['man']['name']
-        player1.energy = couple_names['man']['energy']
-        player1.time = couple_names['man']['time']
-        player2.actor_name = couple_names['woman']['name']
-        player2.energy = couple_names['man']['energy']
-        player2.time = couple_names['man']['time']
+    def _unpack_couple_names(self,couple_names, actor):
+        self.ids.male_details.name = couple_names['man']['name']
+        self.ids.male_details.energy = couple_names['man']['energy']
+        self.ids.male_details.time = couple_names['man']['time']
+        self.ids.female_details.name = couple_names['woman']['name']
+        self.ids.female_details.energy = couple_names['man']['energy']
+        self.ids.female_details.time = couple_names['man']['time']
+        self.ids.male_details.source = actor[1]
+        self.ids.female_details.source = actor[3]
 
     def generate_prompt(self, conn):
         with closing(conn.cursor()) as cur:
-            actors = [((male_name,male_image_path ),(female_name,female_image_path )) for (male_name, male_image_path, female_name, female_image_path) in  cur.execute(CHOOSE_COUPLE_SQL)]
+            actor =  [(male_name, male_image_path, female_name, female_image_path) for (male_name, male_image_path, female_name, female_image_path) in  cur.execute(CHOOSE_COUPLE_SQL)][0]
             tasks_to_complete = [
                 task_to_be_done(name=name, time=time, energy=energy,  texture=None)
                 for name, time, energy in cur.execute("SELECT name, time, energy FROM Tasks")
             ]
             game_scenario = generate_game_scenario(tasks_to_complete)
             self.ids.prompt_text.text += game_scenario["background_story"]
-            #self._unpack_couple_names(game_scenario['couple_names'])
+            self._unpack_couple_names(game_scenario['couple_names'], actor)
             return game_scenario
 
     def show_total(self,total_time,total_energy, *, _cache=[]):

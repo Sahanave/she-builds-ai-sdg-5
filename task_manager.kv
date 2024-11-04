@@ -24,6 +24,21 @@
         color: rgba("#E75480")
         bold: True
 
+<SHActorImage@BoxLayout>:
+    source : 'default'
+    name : 'default'
+    Image:
+        allow_stretch: True
+        source: root.source
+        size: self.texture_size
+    SHLabel:
+        text:'\n{}'.format(root.name)
+        color: rgba("#E75480")
+        bold: True
+        font_size: max(20, sp(16))
+
+
+
 <SHShelf@KXReorderableBehavior+RVLikeBehavior+StackLayout>:
     padding: '10dp'
     spacing: '10dp'
@@ -41,8 +56,8 @@
     padding: '10dp'
     spacing: '10dp'
     prompt : prompt_text
-    player1 : man
-    player2 : woman
+    male_details : male_details
+    female_details : female_details
     fact_button : fact
 
     BoxLayout:
@@ -79,41 +94,30 @@
             max_size: root.width
             BoxLayout:
                 orientation: 'vertical'
+                canvas.before:
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                        source: 'assets/city_bg2.jpeg'
                 BoxLayout: 
-                    Label:
-                        text: 'Player 1'
-                        bold: True
-                        color: rgba("#4466FF")
-                    ScrollView:
+                    SHActorImage:
+                        id : male_details
+                    SHActor:
                         canvas.before:
                             Color:
-                                rgba: .4, .4, .4, 1
+                                rgba: 1, 0, 1, 1
                             Line:
                                 rectangle: (*self.pos, *self.size, )
-                        size_hint_y: 1000.
-                        always_overscroll: False
-                        SHActor:
-                            id: man
-                Splitter:
-                    sizable_from: 'left'  # Resize cart1 from the left
-                    min_size: 100  # Minimum width for cart1
-                    max_size: root.width  # Maximum width for cart1
-                BoxLayout: 
-                    Label:
-                        text: 'Player 2'
-                        bold: True
-                        color: rgba("#4466FF")
-                    ScrollView:
+                        id: man
+                    SHActorImage:
+                        id : female_details
+                    SHActor:
                         canvas.before:
                             Color:
-                                rgba: .4, .4, .4, 1
+                                rgba: 1, 0, 1, 1
                             Line:
                                 rectangle: (*self.pos, *self.size, )
-                        size_hint_y: 1000.
-                        always_overscroll: False
-                        SHActor:
-                            id: woman
-
+                        id: woman
     BoxLayout:
         size_hint_y: None
         height: self.minimum_height
