@@ -11,23 +11,22 @@ CHOOSE_COUPLE_SQL =  '''
 CREATE_TABLES = """
                 CREATE TABLE Tasks (
                     name TEXT NOT NULL UNIQUE,
-                    time INT NOT NULL,
                     energy INT NOT NULL,
                     image_path TEXT NOT NULL,
                     PRIMARY KEY (name)
                 );
-                INSERT INTO Tasks(name, time, energy, image_path) VALUES                
-                    ('Cooking', 3, 3, 'assets/cooking.png'),
-                    ('Cleaning', 3, 5 , 'assets/mop.png'),
-                    ('GroceryShopping', 2, 2 , 'assets/vegetable.png'),
-                    ('Child-care', 7,7 , 'assets/crawl.png'),
-                    ('Elderly-care', 7,7 , 'assets/elderly.png'),
-                    ('Garden', 5,4 , 'assets/gardening.png'),
-                    ('PetCare', 1,1 , 'assets/dog.png'),
-                    ('PayBills', 1,2 , 'assets/bill.png'),
-                    ('Laundry', 2,3 , 'assets/laundry-machine.png'),
-                    ('Washdishes', 2,1 , 'assets/washdishes.png'),
-                    ('Care', 7,7, 'assets/care.png');
+                INSERT INTO Tasks(name, energy, image_path) VALUES                
+                    ('Cooking', 3, 'assets/cooking.png'),
+                    ('Cleaning', 3 , 'assets/mop.png'),
+                    ('GroceryShopping', 2 , 'assets/vegetable.png'),
+                    ('Child-care', 7, 'assets/crawl.png'),
+                    ('Elderly-care', 7, 'assets/elderly.png'),
+                    ('Garden', 5 , 'assets/gardening.png'),
+                    ('PetCare', 1 , 'assets/dog.png'),
+                    ('PayBills', 1 , 'assets/bill.png'),
+                    ('Laundry', 2 , 'assets/laundry-machine.png'),
+                    ('Washdishes', 2 , 'assets/washdishes.png'),
+                    ('Care', 7, 'assets/care.png');
                 
                 CREATE TABLE Actors (
                     name TEXT NOT NULL UNIQUE,

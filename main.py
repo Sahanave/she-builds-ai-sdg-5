@@ -11,7 +11,7 @@ import sqlite3
 from typing import Tuple, Iterable
 from dataclasses import dataclass
 from kivy.app import App
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, ListProperty, NumericProperty
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.factory import Factory as F
@@ -22,14 +22,19 @@ from kivy.uix.scrollview import ScrollView
 from gemini_calls import generate_game_scenario
 from sql_queries import CHOOSE_COUPLE_SQL, CREATE_TABLES, get_texture
 from types import SimpleNamespace
+from kivy.uix.anchorlayout import AnchorLayout
+from kivy.core.window import Window
 
 @dataclass
 class task_to_be_done:
     name: str = ''
-    time: int = 0
     energy: int = 0
     texture: F.Texture = None
 
+class CircularProgresBar(AnchorLayout):
+    set_value = NumericProperty(2)
+    bar_color = ListProperty([1,0,100/255,.1])
+    bar_width = NumericProperty(10)
 
 class SharingApp(App):
     def build(self):
@@ -39,6 +44,19 @@ class SharingApp(App):
     def on_start(self):
         ak.start(self.root.main(db_path=__file__ + r".sqlite3"))
 
+    def restart(self):
+        self.root.clear_widgets()
+        self.on_stop()
+        self.on_start()
+
+class EquitableBoxLayout(F.BoxLayout):
+    '''Always dispatches touch events to all its children'''
+    def on_touch_down(self, touch):
+        return any([c.dispatch('on_touch_down', touch) for c in self.children])
+    def on_touch_move(self, touch):
+        return any([c.dispatch('on_touch_move', touch) for c in self.children])
+    def on_touch_up(self, touch):
+        return any([c.dispatch('on_touch_up', touch) for c in self.children])
 
 class SHMain(F.BoxLayout):
     prompt = ObjectProperty(None)
@@ -49,13 +67,18 @@ class SHMain(F.BoxLayout):
         super().__init__(**kwargs)
         self._equality_text = None
 
+    def my_sum_callback(self, dt):
+        try:
+            self.ids.male_details.energy = sum([data.energy for data in self.ids.man.data]) 
+            self.ids.female_details.energy = sum([data.energy for data in self.ids.woman.data])
+        except Exception as ex:
+            print(ex)
+
     def _unpack_couple_names(self,couple_names, actor):
         self.ids.male_details.name = couple_names['man']['name']
         self.ids.male_details.energy = couple_names['man']['energy']
-        self.ids.male_details.time = couple_names['man']['time']
         self.ids.female_details.name = couple_names['woman']['name']
         self.ids.female_details.energy = couple_names['man']['energy']
-        self.ids.female_details.time = couple_names['man']['time']
         self.ids.male_details.source = actor[1]
         self.ids.female_details.source = actor[3]
 
@@ -63,15 +86,15 @@ class SHMain(F.BoxLayout):
         with closing(conn.cursor()) as cur:
             actor =  [(male_name, male_image_path, female_name, female_image_path) for (male_name, male_image_path, female_name, female_image_path) in  cur.execute(CHOOSE_COUPLE_SQL)][0]
             tasks_to_complete = [
-                task_to_be_done(name=name, time=time, energy=energy,  texture=None)
-                for name, time, energy in cur.execute("SELECT name, time, energy FROM Tasks")
+                task_to_be_done(name=name, energy=energy,  texture=None)
+                for name, energy in cur.execute("SELECT name, energy FROM Tasks")
             ]
             game_scenario = generate_game_scenario(tasks_to_complete)
             self.ids.prompt_text.text += game_scenario["background_story"]
             self._unpack_couple_names(game_scenario['couple_names'], actor)
             return game_scenario
 
-    def show_total(self,total_time,total_energy, *, _cache=[]):
+    def show_total(self,total_energy, *, _cache=[]):
         try:
             popup = _cache.pop()
         except IndexError:
@@ -81,7 +104,7 @@ class SHMain(F.BoxLayout):
                 content=F.Label(),
             )
             popup.bind(on_dismiss=lambda popup, _cache=_cache: _cache.append(popup))
-        popup.content.text = f"{total_time} hours / {total_energy} energy bar " 
+        popup.content.text = f"{total_energy} energy bar " 
         popup.open()
 
     def show_message(self, *, _cache=[]):
@@ -125,11 +148,14 @@ class SHMain(F.BoxLayout):
             for task_dict in sampled_chores:
                 task =  SimpleNamespace(**task_dict) 
                 if task.name in set_of_names:
-                    final_list.append(task_to_be_done(name=task.name, time=task.time_to_be_spent, energy=task.energy_to_be_spent, texture=self.task_textures[task.name]))
+                    final_list.append(task_to_be_done(name=task.name, energy=task.energy_to_be_spent, texture=self.task_textures[task.name]))
                 else:
-                    final_list.append(task_to_be_done(name=task.name, time=task.time_to_be_spent, energy=task.energy_to_be_spent, texture=self.task_textures[renamed[task.name]]))
+                    final_list.append(task_to_be_done(name=task.name, energy=task.energy_to_be_spent, texture=self.task_textures[renamed[task.name]]))
 
             self.ids.shelf.data = final_list
+
+        Clock.schedule_interval(self.my_sum_callback, 1)
+
 
     @staticmethod
     async def _load_database(db_path: PathLike) -> sqlite3.Connection:
@@ -160,17 +186,7 @@ class SHMain(F.BoxLayout):
 class SHTask(KXDraggableBehavior, F.BoxLayout):
     datum = ObjectProperty(task_to_be_done(), rebind=True)
 
-
-class EquitableBoxLayout(F.BoxLayout):
-    '''Always dispatches touch events to all its children'''
-    def on_touch_down(self, touch):
-        return any([c.dispatch('on_touch_down', touch) for c in self.children])
-    def on_touch_move(self, touch):
-        return any([c.dispatch('on_touch_move', touch) for c in self.children])
-    def on_touch_up(self, touch):
-        return any([c.dispatch('on_touch_up', touch) for c in self.children])
-
-
+        
 class RVLikeBehavior:
     '''Mix-in class that adds RecyclewView-like interface to layouts. But
     unlike RecycleView, this one creates view widgets as much as the number
@@ -215,6 +231,7 @@ class RVLikeBehavior:
             self.add_widget(w)
         params.clear()
 F.register('RVLikeBehavior', cls=RVLikeBehavior)
+
 
 if __name__ == '__main__':
     SharingApp().run()
