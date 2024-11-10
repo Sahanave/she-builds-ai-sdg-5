@@ -19,7 +19,7 @@ import asynckivy as ak
 from kivy_garden.draggable import KXDraggableBehavior, KXReorderableBehavior
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
-from gemini_calls import generate_game_scenario
+from gemini_calls import generate_game_scenario, complete_game_scenario
 from sql_queries import CHOOSE_COUPLE_SQL, CREATE_TABLES, get_texture
 from types import SimpleNamespace
 from kivy.uix.anchorlayout import AnchorLayout
@@ -61,19 +61,18 @@ class SHMain(F.BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._equality_text = None
+        self._game_scenario = None
 
-    def my_sum_callback(self, dt):
+    def sum_callback(self, dt):
         try:
             self.ids.male_details.energy = sum([data.energy for data in self.ids.man.data]) 
             self.ids.female_details.energy = sum([data.energy for data in self.ids.woman.data])
         except Exception as ex:
-            print(ex)
+            print(f"sum_callback_exception {ex=}")
 
     def _unpack_couple_names(self,couple_names, actor):
         self.ids.male_details.name = couple_names['man']['name']
-        self.ids.male_details.energy = couple_names['man']['energy']
         self.ids.female_details.name = couple_names['woman']['name']
-        self.ids.female_details.energy = couple_names['man']['energy']
         self.ids.male_details.source = actor[1]
         self.ids.female_details.source = actor[3]
 
@@ -87,32 +86,25 @@ class SHMain(F.BoxLayout):
             game_scenario = generate_game_scenario(tasks_to_complete)
             self.ids.prompt_text.text += game_scenario["background_story"]
             self._unpack_couple_names(game_scenario['couple_names'], actor)
+            self._game_scenario=game_scenario
             return game_scenario
 
-    def show_total(self,total_energy, *, _cache=[]):
-        try:
-            popup = _cache.pop()
-        except IndexError:
-            popup = F.Popup(
-                size_hint=(.5, .2, ),
-                title='Total',
-                content=F.Label(),
-            )
-            popup.bind(on_dismiss=lambda popup, _cache=_cache: _cache.append(popup))
-        popup.content.text = f"{total_energy} energy bar " 
-        popup.open()
+    def complete_story(self):
+        user_selected_answer = {}
+        user_selected_answer[self.ids.male_details.name] = set(data.name for data in self.ids.man.data)
+        user_selected_answer[self.ids.female_details.name] = set(data.name for data in self.ids.woman.data)
+        content = complete_game_scenario(background_story=self._game_scenario["background_story"], work_distribution=user_selected_answer)
+        self.show_message(title='The End',content=content)
 
-    def show_message(self, *, _cache=[]):
-        try:
-            popup = _cache.pop()
-        except IndexError:
-            popup = F.Popup(
-                title='Gender Equality',
-                content=F.Label(),
-                size_hint=(1, .2),
-            )
-            popup.bind(on_dismiss=lambda popup, _cache=_cache: _cache.append(popup))
-        popup.content.text = self._equality_text
+    def show_message(self, title, content):
+        popup = F.Popup(
+            title=title,
+            content=F.Label(text=content,
+                            text_size=(self.width, None),
+                             halign="center", 
+                            ),
+            size_hint=(1, .2)
+        )
         popup.open()
 
     async def main(self, db_path: PathLike):
@@ -122,7 +114,7 @@ class SHMain(F.BoxLayout):
         conn = await self._load_database(db_path)
         game_scenario = self.generate_prompt(conn)
         self._equality_text = game_scenario['equality_fact']
-        sampled_chores, renamed = game_scenario['list_of_chores'], game_scenario['renamed'][0]
+        sampled_chores, renamed = game_scenario['list_of_chores'], game_scenario['renamed']
 
         with closing(conn.cursor()) as cur:
             # FIXME: It's probably better to ``Texture.add_reload_observer()``.
@@ -149,7 +141,7 @@ class SHMain(F.BoxLayout):
 
             self.ids.shelf.data = final_list
 
-        Clock.schedule_interval(self.my_sum_callback, 1)
+        Clock.schedule_interval(self.sum_callback, 1)
 
 
     @staticmethod

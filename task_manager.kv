@@ -103,7 +103,7 @@
                     bold: True
                     color: rgba("#A52A2A")
                 SHLabel:
-                    text: '\n\n\nDistribute tasks for our lovely couple'
+                    text: '\n\n\nDistribute tasks for our lovely couple. Aim to Balance the % between them'
                     font_size: max(30, sp(20))
                     bold: True
                     color: rgba("#734F96")
@@ -147,8 +147,8 @@
         height: self.minimum_height
         SHButton:
             text: 'Complete Story'
-            on_press: root.show_total(sum([data.energy for data in woman.data]))
+            on_press: root.complete_story()
         SHButton:
             id : fact
             text: 'Do you know'
-            on_press: root.show_message()
+            on_press: root.show_message(title='Gender equality', content=root._equality_text)

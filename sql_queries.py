@@ -5,6 +5,7 @@ CHOOSE_COUPLE_SQL =  '''
     FROM Actors a1
     JOIN Actors a2 ON a1.gender != a2.gender
     WHERE a1.gender = 'M' AND a2.gender = 'F'  -- Filter for distinct genders after joining
+    ORDER BY RANDOM()
     LIMIT 1;
 '''
 
