@@ -20,22 +20,53 @@
         texture: root.datum.texture
         size_hint_y: 3.
     SHLabel:
-        text: '{} \n({} time {} energy)'.format(root.datum.name, root.datum.time, root.datum.energy)
+        text: '{} \n({} energy)'.format(root.datum.name, root.datum.energy)
         color: rgba("#E75480")
         bold: True
 
+
+<CircularProgresBar>
+    canvas.before:
+        Color:
+            rgba: root.bar_color + [0.3]
+        Line:
+            width: root.bar_width/2
+            ellipse: (self.x, self.y, self.width, self.height, 0, 360)
+    canvas.after:
+        Color:
+            rgb: root.bar_color 
+        Line:
+            width: root.bar_width/2
+            ellipse: (self.x, self.y, self.width, self.height, 0, root.set_value*36)
+    Label:
+        text : f"{root.set_value*10}%"
+        font_size:"40sp"
+        pos_hint:{"center_x":.5, "center_y":.5}
+        halign:"center"
+        color:root.bar_color
+
 <SHActorImage@BoxLayout>:
+    orientation: 'vertical'
     source : 'default'
     name : 'default'
+    energy : 0
+    spacing: '4dp'
+    size: '200dp', '300dp'
+    size_hint: None, None
+    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
     Image:
         allow_stretch: True
         source: root.source
-        size: self.texture_size
-    SHLabel:
+        size_hint_y: 3
+    Label:
         text:'\n{}'.format(root.name)
         color: rgba("#E75480")
         bold: True
-        font_size: max(20, sp(16))
+    CircularProgresBar:
+        size_hint: None, None
+        size : 200, 200
+        pos_hint:{"center_x":.5, "center_y":.5}
+        set_value: root.energy
 
 
 
@@ -46,94 +77,80 @@
     drag_classes: ['task_to_be_done', ]
     viewclass: 'SHTask'
 
-<SHActor@SHShelf>:
-    actor_name : 'default'
-    energy : 0
-    time : 0
-
 <SHMain>:
     orientation: 'vertical'
     padding: '10dp'
     spacing: '10dp'
     prompt : prompt_text
-    male_details : male_details
-    female_details : female_details
     fact_button : fact
-
-    BoxLayout:
+    EquitableBoxLayout:
         BoxLayout:
-            orientation: 'vertical'
-            canvas.before:
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-                    source: 'assets/city_bg.jpg'
-            SHLabel:
-                id : prompt_text
-                text: "Balance \n\n"
-                font_size: max(30, sp(20))
-                text_size: self.width, None
-                center_x: root.width / 4
-                top: root.top - 50
-                size: self.texture_size
-                bold: True
-                color: rgba("#A52A2A")
-            SHLabel:
-                text: '\n\n\nDistribute tasks for our lovely couple'
-                font_size: max(30, sp(20))
-                bold: True
-                color: rgba("#734F96")
-            ScrollView:
-                size_hint_y: 1000.
-                always_overscroll: False
-                SHShelf:
-                    id: shelf
-        Splitter:
-            sizable_from: 'left'
-            min_size: 100
-            max_size: root.width
             BoxLayout:
                 orientation: 'vertical'
                 canvas.before:
                     Rectangle:
                         pos: self.pos
                         size: self.size
-                        source: 'assets/city_bg2.jpeg'
-                BoxLayout: 
-                    SHActorImage:
-                        id : male_details
-                    SHActor:
-                        canvas.before:
-                            Color:
-                                rgba: 1, 0, 1, 1
-                            Line:
-                                rectangle: (*self.pos, *self.size, )
-                        id: man
-                    SHActorImage:
-                        id : female_details
-                    SHActor:
-                        canvas.before:
-                            Color:
-                                rgba: 1, 0, 1, 1
-                            Line:
-                                rectangle: (*self.pos, *self.size, )
-                        id: woman
+                        source: 'assets/city_bg.jpg'
+                SHLabel:
+                    id : prompt_text
+                    text: "Balance \n\n"
+                    font_size: max(30, sp(20))
+                    text_size: self.width, None
+                    center_x: root.width / 4
+                    top: root.top - 50
+                    size: self.texture_size
+                    bold: True
+                    color: rgba("#A52A2A")
+                SHLabel:
+                    text: '\n\n\nDistribute tasks for our lovely couple'
+                    font_size: max(30, sp(20))
+                    bold: True
+                    color: rgba("#734F96")
+                ScrollView:
+                    size_hint_y: 1000.
+                    always_overscroll: False
+                    SHShelf:
+                        id: shelf
+            Splitter:
+                sizable_from: 'left'
+                min_size: 100
+                max_size: root.width
+                BoxLayout:
+                    orientation: 'vertical'
+                    canvas.before:
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                            source: 'assets/city_bg2.jpeg'
+                    BoxLayout: 
+                        SHActorImage:
+                            id : male_details
+                        SHShelf:
+                            canvas.before:
+                                Color:
+                                    rgba: 1, 0, 1, 1
+                                Line:
+                                    rectangle: (*self.pos, *self.size, )
+                            id: man
+                        SHActorImage:
+                            id : female_details
+                        SHShelf:
+                            canvas.before:
+                                Color:
+                                    rgba: 1, 0, 1, 1
+                                Line:
+                                    rectangle: (*self.pos, *self.size, )
+                            id: woman
     BoxLayout:
         size_hint_y: None
         height: self.minimum_height
         SHButton:
-            text: 'New Game'
-            on_press: shelf.data = sorted(shelf.data, key=lambda d: d.time)
-        Widget:  # This can act as a spacer if needed
-            size_hint_y: None
-            height: dp(10)  # Adjust the height to create space
-
+            text: 'Complete Story'
+            on_press: root.show_total(sum([data.energy for data in woman.data]))
         SHButton:
-            text: 'Total'
-            on_press: root.show_total(sum([data.time for data in man.data]), sum([data.energy for data in man.data]))
-        SHButton:
-            text: 'Submit'
-            on_press: root.show_total(sum([data.time for data in woman.data]), sum([data.energy for data in woman.data]))
+            text: 'Reset'
+            on_press: app.restart()
         SHButton:
             id : fact
             text: 'Do you know'
