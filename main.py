@@ -44,11 +44,6 @@ class SharingApp(App):
     def on_start(self):
         ak.start(self.root.main(db_path=__file__ + r".sqlite3"))
 
-    def restart(self):
-        self.root.clear_widgets()
-        self.on_stop()
-        self.on_start()
-
 class EquitableBoxLayout(F.BoxLayout):
     '''Always dispatches touch events to all its children'''
     def on_touch_down(self, touch):

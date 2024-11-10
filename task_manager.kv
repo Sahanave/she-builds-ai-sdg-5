@@ -149,9 +149,6 @@
             text: 'Complete Story'
             on_press: root.show_total(sum([data.energy for data in woman.data]))
         SHButton:
-            text: 'Reset'
-            on_press: app.restart()
-        SHButton:
             id : fact
             text: 'Do you know'
             on_press: root.show_message()
