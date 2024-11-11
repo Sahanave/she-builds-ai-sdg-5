@@ -54,13 +54,14 @@
     size: '200dp', '300dp'
     size_hint: None, None
     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+    color_code : "#E75480"
     Image:
         allow_stretch: True
         source: root.source
         size_hint_y: 3
     Label:
         text:'\n{}'.format(root.name)
-        color: rgba("#E75480")
+        color: rgba(root.color_code)
         bold: True
     CircularProgresBar:
         size_hint: None, None
@@ -126,21 +127,25 @@
                     BoxLayout: 
                         SHActorImage:
                             id : male_details
+                            color_code:"#FF0000"
                         SHShelf:
                             canvas.before:
                                 Color:
-                                    rgba: 1, 0, 1, 1
+                                    rgba: 1, 0, 0, 1
                                 Line:
                                     rectangle: (*self.pos, *self.size, )
+                                    width: 2 
                             id: man
                         SHActorImage:
                             id : female_details
+                            color_code:"#0000FF"
                         SHShelf:
                             canvas.before:
                                 Color:
-                                    rgba: 1, 0, 1, 1
+                                    rgba: 0, 0, 1, 1
                                 Line:
                                     rectangle: (*self.pos, *self.size, )
+                                    width: 2 
                             id: woman
     BoxLayout:
         size_hint_y: None
