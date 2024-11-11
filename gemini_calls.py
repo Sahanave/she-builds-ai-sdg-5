@@ -6,7 +6,7 @@ import protos
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-
+MAX_ATTEMPTS = 3
 
 def complete_game_scenario(background_story, work_distribution):
     generation_config = {
@@ -25,9 +25,15 @@ def complete_game_scenario(background_story, work_distribution):
     3. Add new line character at end of set
 
     '''
-    response = model.generate_content(prompt)
-    text = response.text
-    return text
+    attempt = 0
+    while attempt < MAX_ATTEMPTS:
+        try:
+            response = model.generate_content(prompt)
+            if response.text:  # Check if the response is valid
+                return response.text
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}") 
+        attempt += 1
 
 def generate_game_scenario(chores=[]):
     # Create the model
@@ -90,9 +96,13 @@ def generate_game_scenario(chores=[]):
                             "equality_fact": "Studies have shown that providing affordable and accessible childcare reduces the burden of unpaid care work on women, allowing them to participate more equally in the workforce."
                             }
                 ''' 
-    
-    response = model.generate_content(prompt)
-    print(response.text)
-    game_data = json.loads(response.text[7:-3])
-    return game_data
-    
+    attempt = 0
+    while attempt < MAX_ATTEMPTS:
+        try:
+            response = model.generate_content(prompt)
+            if response.text:  # Check if the response is valid
+                game_data = json.loads(response.text[7:-3]) # remove some unnecessary strings that breaks json.loads
+                return game_data
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}") 
+        attempt += 1
