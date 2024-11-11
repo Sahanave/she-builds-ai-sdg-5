@@ -26,7 +26,7 @@ The project was brought to life using:
 
 Each step involved integrating Gemini’s AI capabilities to generate unique storylines and character interactions, making the game feel responsive to the player’s decisions. This approach immerses players in real-life scenarios, encouraging them to reflect on the significance of sharing household responsibilities.
 
-## Prerequisites
+# Prerequisites
 - **Operating System**: Developed on MacOS 14.4.1, but it may work on other operating systems.
 - **Python Version**: Requires **Python 3.11.10**. Ensure this version or higher is installed.
 - **Environment Variable**: Requires a `GEMINI_API_KEY` (see Running the Application section).
@@ -57,5 +57,10 @@ GEMINI_API_KEY='your_actual_key' python main.py
 ## Troubleshooting
 - **API Key Error**: If you encounter an error related to `GEMINI_API_KEY`, verify the key and that it is properly set in the command.
 - **OS Compatibility**: If issues arise on non-Linux systems, consider testing in a Linux environment.
-```
+
+## References
+- Icon made by authors from www.flaticon.com.
+- Background was downloded from 
+    - https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRfiBefc9OBdYbPd58cq0uIS2tUJsYDU4wKIA&s
+    - https://wallcoveringsmart.com/cdn/shop/products/343276.jpg?v=1607876577
 
