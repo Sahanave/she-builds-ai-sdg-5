@@ -26,6 +26,36 @@ The project was brought to life using:
 
 Each step involved integrating Gemini’s AI capabilities to generate unique storylines and character interactions, making the game feel responsive to the player’s decisions. This approach immerses players in real-life scenarios, encouraging them to reflect on the significance of sharing household responsibilities.
 
+## Prerequisites
+- **Operating System**: Developed on MacOS 14.4.1, but it may work on other operating systems.
+- **Python Version**: Requires **Python 3.11.10**. Ensure this version or higher is installed.
+- **Environment Variable**: Requires a `GEMINI_API_KEY` (see Running the Application section).
+- **Libraries**: Install dependencies using the provided `requirements.txt` file.
 
+## Download Link
+Clone or download the repository from GitHub:
+```bash
+git clone https://github.com/Sahanave/she-builds-ai-sdg-5
+cd she-builds-ai-sdg-5
+```
 
+## Installation Instructions
+Install required libraries with the `requirements.txt` file:
+```bash
+pip install -r requirements.txt
+```
+
+## Running the Application
+To start the application, run the following command, replacing `'your_actual_key'` with your actual Gemini API key:
+```bash
+GEMINI_API_KEY='your_actual_key' python main.py
+```
+
+## Testing Instructions
+- Test key functionality by [describe any specific test steps, e.g., "verifying data retrieval from the Gemini API"].
+
+## Troubleshooting
+- **API Key Error**: If you encounter an error related to `GEMINI_API_KEY`, verify the key and that it is properly set in the command.
+- **OS Compatibility**: If issues arise on non-Linux systems, consider testing in a Linux environment.
+```
 
