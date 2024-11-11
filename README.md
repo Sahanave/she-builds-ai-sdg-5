@@ -51,9 +51,6 @@ To start the application, run the following command, replacing `'your_actual_key
 GEMINI_API_KEY='your_actual_key' python main.py
 ```
 
-## Testing Instructions
-- Test key functionality by [describe any specific test steps, e.g., "verifying data retrieval from the Gemini API"].
-
 ## Troubleshooting
 - **API Key Error**: If you encounter an error related to `GEMINI_API_KEY`, verify the key and that it is properly set in the command.
 - **OS Compatibility**: If issues arise on non-Linux systems, consider testing in a Linux environment.
