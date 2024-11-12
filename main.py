@@ -8,6 +8,7 @@ import itertools
 from contextlib import closing
 from os import PathLike
 import sqlite3
+import sys, os
 from typing import Tuple, Iterable
 from dataclasses import dataclass
 from kivy.app import App
@@ -24,6 +25,10 @@ from sql_queries import CHOOSE_COUPLE_SQL, CREATE_TABLES, get_texture
 from types import SimpleNamespace
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.core.window import Window
+from kivy.uix.settings import Settings
+from kivy.config import Config
+from kivy.core.window import Window
+from kivy.cache import Cache
 
 @dataclass
 class task_to_be_done:
@@ -40,9 +45,13 @@ class SharingApp(App):
     def build(self):
         Builder.load_file('task_manager.kv')
         return SHMain()
-
+    
     def on_start(self):
         ak.start(self.root.main(db_path=__file__ + r".sqlite3"))
+
+    def restart_app(self):
+        ak.start(self.root.main(db_path=__file__ + r".sqlite3"))
+
 
 class EquitableBoxLayout(F.BoxLayout):
     '''Always dispatches touch events to all its children'''
@@ -94,7 +103,8 @@ class SHMain(F.BoxLayout):
         user_selected_answer[self.ids.male_details.name] = set(data.name for data in self.ids.man.data)
         user_selected_answer[self.ids.female_details.name] = set(data.name for data in self.ids.woman.data)
         content = complete_game_scenario(background_story=self._game_scenario["background_story"], work_distribution=user_selected_answer)
-        self.show_message(title='The End',content=content)
+        if content:
+            self.show_message(title='The End',content=content)
 
     def show_message(self, title, content):
         popup = F.Popup(
@@ -106,6 +116,7 @@ class SHMain(F.BoxLayout):
             size_hint=(1, .2)
         )
         popup.open()
+
 
     async def main(self, db_path: PathLike):
         from random import randint
@@ -134,10 +145,13 @@ class SHMain(F.BoxLayout):
             final_list = []
             for task_dict in sampled_chores:
                 task =  SimpleNamespace(**task_dict) 
-                if task.name in set_of_names:
-                    final_list.append(task_to_be_done(name=task.name, energy=task.energy_to_be_spent, texture=self.task_textures[task.name]))
-                else:
-                    final_list.append(task_to_be_done(name=task.name, energy=task.energy_to_be_spent, texture=self.task_textures[renamed[task.name]]))
+                try:
+                    if task.name in set_of_names:
+                        final_list.append(task_to_be_done(name=task.name, energy=task.energy_to_be_spent, texture=self.task_textures[task.name]))
+                    else:
+                        final_list.append(task_to_be_done(name=task.name, energy=task.energy_to_be_spent, texture=self.task_textures[renamed[task.name]]))
+                except:
+                    continue
 
             self.ids.shelf.data = final_list
 
@@ -221,4 +235,5 @@ F.register('RVLikeBehavior', cls=RVLikeBehavior)
 
 
 if __name__ == '__main__':
+    Window.size = (1500, 1000)
     SharingApp().run()
