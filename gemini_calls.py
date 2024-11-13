@@ -52,7 +52,7 @@ def generate_game_scenario(chores=[]):
     prompt = f'''
             For a game, \n\n1. Name a couple (man and woman).
             2. Assuming they are partners, choose a task from to complete form list (task, energy_to_be spent) : {chores} 
-            3. Generate a background stort  using LLMs 
+            3. Generate a background stort  using LLMs . Keep it short within 10 sentences.
             4. Match a list of tasks of tasks to be completed by them as part of the story
             6. If not using the exact chore string, You are free to rename a chore string but match the close one in list and pass it as renamed. 
             7. generate another element to json . related Fact about how we can encourage equality  and create more opportunities for women 'equality_fact": "" 

@@ -154,6 +154,11 @@ class SHMain(F.BoxLayout):
                     continue
 
             self.ids.shelf.data = final_list
+            try:
+                self.ids.man.clear_widgets()
+                self.ids.woman.clear_widgets()
+            except:
+                print("main, nothing_to_clear")
 
         Clock.schedule_interval(self.sum_callback, 1)
 
